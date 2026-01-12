@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperliquid Sign Action</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        textarea, input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; font-family: monospace; }
+        button { margin-top: 20px; padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px; white-space: pre-wrap; overflow-x: auto; }
+        .error { color: red; }
+    </style>
+  <script type="module" crossorigin src="/hyperliquid-action/assets/index-CEeEF-D7.js"></script>
+</head>
+<body>
+    <h1>Hyperliquid Sign Action</h1>
+    
+    <label for="action">Action (JSON):</label>
+    <textarea id="action" rows="10">{
+        "type": "cancel", "cancels":[]
+}</textarea>
+
+    <label for="nonce">Nonce:</label>
+    <div style="display: flex; gap: 10px;">
+        <input type="number" id="nonce" value="123">
+        <button id="nonceBtn" style="margin-top: 5px; padding: 5px 10px; white-space: nowrap;">Get Current Time</button>
+    </div>
+
+    <div id="accountDisplay" style="margin-top: 15px; font-weight: bold; color: #555;">Account: Not connected</div>
+
+    <button id="signBtn">Connect MetaMask & Sign</button>
+
+    <div id="result">Result will appear here...</div>
+
+</body>
+</html>
+
