@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hyperliquidity Calculator</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.35; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    p { margin: 0 0 18px; opacity: 0.85; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { border: 1px solid rgba(127,127,127,0.35); border-radius: 12px; padding: 14px; }
+    label { display: block; font-size: 12px; opacity: 0.85; margin-bottom: 6px; }
+    input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(127,127,127,0.35); background: transparent; font-size: 14px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .row:last-of-type { margin-bottom: 0; }
+    .out { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+    .kv { display: grid; grid-template-columns: 220px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(127,127,127,0.35); }
+    .kv:last-child { border-bottom: 0; }
+    .muted { opacity: 0.75; font-size: 12px; margin-top: 10px; }
+    .err { color: #b00020; font-size: 12px; margin-top: 8px; }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+      .kv { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>qLabs HL Spot Deploy Calculator</h1>
+    <p>
+      Computes: <span class="out">HL tokens</span>, <span class="out">mid price</span>, <span class="out">max price</span>, and <span class="out">seeded USDC</span>
+      using your formulas.
+    </p>
+
+    <div class="grid">
+      <div class="card">
+        <h2 style="margin:0 0 10px; font-size:16px;">Inputs</h2>
+
+        <div class="row">
+          <div>
+            <label for="startPx">startPx (min price)</label>
+            <input id="startPx" type="number" step="0.0000000001" value="0.005" />
+          </div>
+          <div>
+            <label for="orderSz">orderSz (token size per level)</label>
+            <input id="orderSz" type="number" step="1" value="40000" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="nOrders">nOrders (total levels)</label>
+            <input id="nOrders" type="number" step="1" value="3000" />
+          </div>
+          <div>
+            <label for="nSeededLevels">nSeededLevels (buy levels seeded)</label>
+            <input id="nSeededLevels" type="number" step="1" value="100" />
+          </div>
+        </div>
+
+        <div id="err" class="err" style="display:none;"></div>
+        <div class="muted">
+          Notes:
+          <ul>
+            <li><span class="out">HL_tokens</span> uses: <span class="out">(orderSz × weiMultiplier) × (nOrders − nSeededLevels)</span></li>
+            <li><span class="out">midPrice</span> uses: <span class="out">startPx × step^nSeededLevels</span></li>
+            <li><span class="out">maxPrice</span> uses: <span class="out">startPx × step^(nOrders − 1)</span></li>
+            <li><span class="out">seeded USDC</span> sums: <span class="out">Σ(orderSz × (mid/step^k)), k=1..nSeededLevels</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px; font-size:16px;">Results</h2>
+
+        <div class="out">
+          <div class="kv"><div class="muted">HL Tokens (Wei)</div><div id="hlWei">—</div></div>
+          <div class="kv"><div class="muted">HL Tokens (Base)</div><div id="hlBase">—</div></div>
+          <div class="kv"><div class="muted">Mid Start Price</div><div id="midPrice">—</div></div>
+          <div class="kv"><div class="muted">Max Price</div><div id="maxPrice">—</div></div>
+          <div class="kv"><div class="muted">Seeded USDC</div><div id="seededUsdc">—</div></div>
+        </div>
+
+        <h3 style="margin:16px 0 8px; font-size:14px;">Generated JSON</h3>
+        <pre class="out" id="jsonOut" style="white-space:pre-wrap; margin:0; padding:12px; border-radius:12px; border:1px solid rgba(127,127,127,0.35);"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function midPriceFromLow(lowPx, nSeededLevels, step) {
+      return lowPx * Math.pow(step, nSeededLevels);
+    }
+
+    function maxPriceFromLow(lowPx, nOrders, step) {
+      return lowPx * Math.pow(step, Math.max(0, nOrders - 1));
+    }
+
+    function seededUsdc(midPx, orderSz, nSeeded, step) {
+      let usdc = 0;
+      for (let k = 1; k <= nSeeded; k++) {
+        const px = midPx / Math.pow(step, k); // buy ladder below mid
+        usdc += orderSz * px;
+      }
+      return usdc;
+    }
+
+    function fmtNum(x, decimals) {
+      if (!Number.isFinite(x)) return "—";
+      return x.toLocaleString(undefined, {
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: 0
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("err");
+      if (!msg) {
+        el.style.display = "none";
+        el.textContent = "";
+      } else {
+        el.style.display = "block";
+        el.textContent = msg;
+      }
+    }
+
+    function readInputs() {
+      const spot = 1414;
+      const step = 1.003;
+      const startPx = Number(document.getElementById("startPx").value);
+      const orderSz = Number(document.getElementById("orderSz").value);
+      const nOrders = Math.trunc(Number(document.getElementById("nOrders").value));
+      const nSeededLevels = Math.trunc(Number(document.getElementById("nSeededLevels").value));
+      const weiMultiplier = 100000;
+      const formatDecimals = 10;
+
+      return { spot, step, startPx, orderSz, nOrders, nSeededLevels, weiMultiplier, formatDecimals };
+    }
+
+    function compute() {
+      const { spot, step, startPx, orderSz, nOrders, nSeededLevels, weiMultiplier, formatDecimals } = readInputs();
+
+      // Basic validation
+      if (!Number.isFinite(step) || step <= 1) return showError("step must be > 1 (e.g., 1.003).");
+      if (!Number.isFinite(startPx) || startPx <= 0) return showError("startPx must be > 0.");
+      if (!Number.isFinite(orderSz) || orderSz <= 0) return showError("orderSz must be > 0.");
+      if (!Number.isFinite(nOrders) || nOrders <= 0) return showError("nOrders must be a positive integer.");
+      if (!Number.isFinite(nSeededLevels) || nSeededLevels < 0) return showError("nSeededLevels must be >= 0.");
+      if (nSeededLevels > nOrders) return showError("nSeededLevels must be <= nOrders.");
+      if (!Number.isFinite(weiMultiplier) || weiMultiplier <= 0) return showError("weiMultiplier must be > 0.");
+
+      showError("");
+
+      // HL token calculation (use BigInt to avoid overflow for large inputs)
+      const orderSzBI = BigInt(Math.trunc(orderSz));
+      const nOrdersBI = BigInt(nOrders);
+      const seededBI = BigInt(nSeededLevels);
+      const weiMulBI = BigInt(Math.trunc(weiMultiplier));
+
+      const hlWei = orderSzBI * weiMulBI * (nOrdersBI - seededBI);
+      const hlBase = hlWei / weiMulBI;
+
+      const mid = midPriceFromLow(startPx, nSeededLevels, step);
+      const max = maxPriceFromLow(startPx, nOrders, step);
+      const usdc = seededUsdc(mid, orderSz, nSeededLevels, step);
+
+      document.getElementById("hlWei").textContent = hlWei.toLocaleString();
+      document.getElementById("hlBase").textContent = hlBase.toLocaleString();
+      document.getElementById("midPrice").textContent = fmtNum(mid, formatDecimals);
+      document.getElementById("maxPrice").textContent = fmtNum(max, formatDecimals);
+      document.getElementById("seededUsdc").textContent = fmtNum(usdc, 2);
+
+      const json = {
+        type: "spotDeploy",
+        registerHyperliquidity: {
+          spot: Number.isFinite(spot) ? spot : null,
+          startPx: String(startPx),
+          orderSz: String(Math.trunc(orderSz)),
+          nOrders: nOrders,
+          nSeededLevels: nSeededLevels
+        }
+      };
+
+      document.getElementById("jsonOut").textContent = JSON.stringify(json, null, 2);
+    }
+
+    // Auto-recompute on any input change
+    document.querySelectorAll("input").forEach(inp => {
+      inp.addEventListener("input", compute);
+      inp.addEventListener("change", compute);
+    });
+
+    // Initial compute
+    compute();
+  </script>
+</body>
+</html>
