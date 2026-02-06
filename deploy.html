@@ -84,7 +84,7 @@
 <body>
   <div class="wrap">
     <h1>Contract Deployer</h1>
-    <p style="color: var(--text-muted); margin-bottom: 32px;">Deploy QONEV2 and TokenVestingV2 to Hyperliquid Testnet (Chain ID: 998)</p>
+    <p style="color: var(--text-muted); margin-bottom: 32px;">Deploy QONEV2 and TokenVestingV2 to Hyperliquid Mainnet (Chain ID: 999)</p>
 
     <div class="card">
       <div id="accountDisplay" style="font-weight: 600; margin-bottom: 16px; color: var(--accent);">Not connected</div>
@@ -121,12 +121,12 @@
     const QONE_ARTIFACT = await fetch('./QONE.json').then(r => r.json());
     const VESTING_ARTIFACT = await fetch('./TokenVestingV2.json').then(r => r.json());
 
-    const HYPERLIQUID_TESTNET = {
-      chainId: '0x3e6', // 998
-      chainName: 'Hyperliquid Testnet',
+    const HYPERLIQUID_MAINNET = {
+      chainId: '0x3e7', // 999
+      chainName: 'Hyperliquid Mainnet',
       nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
-      rpcUrls: ['https://rpc.hyperliquid-testnet.xyz/evm'],
-      blockExplorerUrls: ['https://testnet.purrsec.com']
+      rpcUrls: ['https://rpc.hyperliquid.xyz/evm'],
+      blockExplorerUrls: ['https://purrsec.com']
     };
 
     let provider, signer;
@@ -137,7 +137,7 @@
       try {
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
-          params: [HYPERLIQUID_TESTNET]
+          params: [HYPERLIQUID_MAINNET]
         });
         
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
