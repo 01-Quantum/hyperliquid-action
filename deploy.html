@@ -176,7 +176,46 @@
         statusEl.innerHTML = `<span style="color: #4ade80; font-weight: bold;">${name} Deployed Successfully!</span><br>
           <div class="result-item"><span class="result-label">Address:</span>${address}</div>
           <div class="result-item"><span class="result-label">Nonce:</span>${tx.nonce}</div>
-          <div class="result-item"><span class="result-label">TX ID:</span>${tx.hash}</div>`;
+          <div class="result-item"><span class="result-label">TX ID:</span>${tx.hash}</div>
+          <button class="check-btn" data-address="${address}" data-type="${artifact === QONE_ARTIFACT ? 'qone' : 'vesting'}" style="margin-top: 12px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent);">Check Contract State</button>
+          <div class="check-results" style="margin-top: 12px; font-family: monospace; font-size: 12px; color: var(--text-muted);"></div>`;
+        
+        // Add event listener to the new button
+        const checkBtn = statusEl.querySelector('.check-btn');
+        const resultsEl = statusEl.querySelector('.check-results');
+        checkBtn.onclick = async () => {
+          checkBtn.disabled = true;
+          resultsEl.textContent = 'Checking...';
+          try {
+            const contract = new ethers.Contract(address, artifact.abi, provider);
+            if (checkBtn.dataset.type === 'qone') {
+              const [name, supply, owner] = await Promise.all([
+                contract.name(),
+                contract.totalSupply(),
+                contract.owner()
+              ]);
+              resultsEl.innerHTML = `
+                <div>Name: ${name}</div>
+                <div>Total Supply: ${ethers.formatUnits(supply, 18)} QONE</div>
+                <div>Owner: ${owner}</div>
+              `;
+            } else {
+              const [owner, tge] = await Promise.all([
+                contract.owner(),
+                contract.tgeTimestamp()
+              ]);
+              const tgeDate = new Date(Number(tge) * 1000);
+              resultsEl.innerHTML = `
+                <div>Owner: ${owner}</div>
+                <div>TGE (Seconds): ${tge}</div>
+                <div>TGE (UTC): ${tgeDate.toUTCString()}</div>
+              `;
+            }
+          } catch (err) {
+            resultsEl.textContent = 'Error checking state: ' + err.message;
+          }
+          checkBtn.disabled = false;
+        };
       } catch (err) {
         statusEl.className = 'status error';
         statusEl.textContent = `Error: ${err.message}`;
