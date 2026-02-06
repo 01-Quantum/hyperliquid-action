@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Contract Deployer - qLabs</title>
+  <title>Authorizer Manager - qLabs</title>
   <style>
     :root {
       --bg: #05070a;
@@ -77,16 +77,18 @@
     .status { margin-top: 16px; font-size: 14px; padding: 12px; border-radius: 8px; display: none; }
     .status.info { background: var(--accent-dim); color: var(--accent); display: block; }
     .status.error { background: rgba(239, 68, 68, 0.1); color: #f87171; display: block; }
+    .status.success { background: rgba(74, 222, 128, 0.1); color: #4ade80; display: block; }
     .result-item { margin-top: 8px; font-family: monospace; font-size: 12px; word-break: break-all; }
     .result-label { color: var(--text-muted); margin-right: 8px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   </style>
-  <script type="module" crossorigin src="/hyperliquid-action/assets/deploy-93gl2VGl.js"></script>
+  <script type="module" crossorigin src="/hyperliquid-action/assets/authorizer-CQyG8Np0.js"></script>
   <link rel="modulepreload" crossorigin href="/hyperliquid-action/assets/modulepreload-polyfill-B5Qt9EMX.js">
 </head>
 <body>
   <div class="wrap">
-    <h1>Contract Deployer</h1>
-    <p style="color: var(--text-muted); margin-bottom: 32px;">Deploy QONEV2 and TokenVestingV2 to Hyperliquid Mainnet (Chain ID: 999)</p>
+    <h1>Authorizer Manager</h1>
+    <p style="color: var(--text-muted); margin-bottom: 32px;">Manage QONEV2 PQC Authorizer upgrades on Hyperliquid Mainnet</p>
 
     <div class="card">
       <div id="accountDisplay" style="font-weight: 600; margin-bottom: 16px; color: var(--accent);">Not connected</div>
@@ -94,26 +96,40 @@
     </div>
 
     <div class="card">
-      <h2>Deploy QONEV2</h2>
-      <label>Initial Owner Address</label>
-      <input id="qoneOwner" type="text" placeholder="0x..." />
-      <label>Authorizer Address</label>
-      <input id="qoneAuthorizer" type="text" placeholder="0x..." value="0xF097375de704d394339Eb322122A9bCDa766AC1b" />
-      <button id="deployQone">Deploy QONEV2</button>
-      <div id="qoneStatus" class="status"></div>
+      <h2>Contract Info</h2>
+      <label>QONEV2 Token Address</label>
+      <input id="tokenAddress" type="text" placeholder="0x..." />
+      <button id="loadInfo">Load Contract Info</button>
+      
+      <div id="contractInfo" style="margin-top: 20px; display: none;">
+        <div class="kv"><span class="result-label">Current Authorizer:</span><span id="currAuth" class="result-item"></span></div>
+        <div class="kv"><span class="result-label">Pending Authorizer:</span><span id="pendAuth" class="result-item"></span></div>
+        <div class="kv"><span class="result-label">Timelock Expires:</span><span id="timelock" class="result-item"></span></div>
+      </div>
     </div>
 
     <div class="card">
-      <h2>Deploy TokenVestingV2</h2>
-      <label>Token Address (QONEV2)</label>
-      <input id="vestingToken" type="text" placeholder="0x..." />
-      <label>TGE Date & Time</label>
-      <input id="vestingTge" type="datetime-local" value="2026-02-07T14:00" />
-      <div id="tgeSeconds" style="font-size: 11px; color: var(--accent); margin-top: -12px; margin-bottom: 12px; font-family: monospace;"></div>
-      <label>Initial Owner Address</label>
-      <input id="vestingOwner" type="text" placeholder="0x..." />
-      <button id="deployVesting">Deploy TokenVestingV2</button>
-      <div id="vestingStatus" class="status"></div>
+      <h2>1. Propose New Authorizer</h2>
+      <label>New Authorizer Address</label>
+      <input id="newAuthAddr" type="text" placeholder="0x..." />
+      <button id="proposeBtn">Propose Authorizer</button>
+      <div id="proposeStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>2. Probe Pending Authorizer</h2>
+      <label>Account to Probe</label>
+      <input id="probeAddr" type="text" placeholder="0x..." />
+      <button id="probeBtn">Probe Authorizer</button>
+      <div id="probeStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>3. Finalize Upgrade</h2>
+      <label>Proof (Hex string, e.g. 0x...)</label>
+      <input id="proofHex" type="text" placeholder="0x..." value="0x" />
+      <button id="finalizeBtn">Finalize Authorizer</button>
+      <div id="finalizeStatus" class="status"></div>
     </div>
   </div>
 
