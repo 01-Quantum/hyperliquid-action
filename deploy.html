@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contract Deployer - qLabs</title>
+  <style>
+    :root {
+      --bg: #05070a;
+      --card-bg: rgba(15, 20, 28, 0.7);
+      --border: rgba(255, 255, 255, 0.1);
+      --accent: #00f2ff;
+      --accent-dim: rgba(0, 242, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.05) 0%, transparent 40%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 800px; margin: 0 auto; }
+    h1 { 
+      margin: 0 0 8px; 
+      font-size: 28px; 
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #fff, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card { 
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 16px; 
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    h2 { margin: 0 0 20px; font-size: 18px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+    label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    input { 
+      width: 100%; 
+      padding: 12px 14px; 
+      border-radius: 10px; 
+      border: 1px solid var(--border); 
+      background: rgba(0, 0, 0, 0.2); 
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button:disabled { background: var(--text-muted); cursor: not-allowed; }
+    .status { margin-top: 16px; font-size: 14px; padding: 12px; border-radius: 8px; display: none; }
+    .status.info { background: var(--accent-dim); color: var(--accent); display: block; }
+    .status.error { background: rgba(239, 68, 68, 0.1); color: #f87171; display: block; }
+    .result-item { margin-top: 8px; font-family: monospace; font-size: 12px; word-break: break-all; }
+    .result-label { color: var(--text-muted); margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Contract Deployer</h1>
+    <p style="color: var(--text-muted); margin-bottom: 32px;">Deploy QONEV2 and TokenVestingV2 to Hyperliquid Testnet (Chain ID: 998)</p>
+
+    <div class="card">
+      <div id="accountDisplay" style="font-weight: 600; margin-bottom: 16px; color: var(--accent);">Not connected</div>
+      <button id="connectBtn">Connect MetaMask</button>
+    </div>
+
+    <div class="card">
+      <h2>Deploy QONEV2</h2>
+      <label>Initial Owner Address</label>
+      <input id="qoneOwner" type="text" placeholder="0x..." />
+      <label>Authorizer Address</label>
+      <input id="qoneAuthorizer" type="text" placeholder="0x..." value="0x0a5c31273A00769d43C88b6a93F4633E1F7C4aE4" />
+      <button id="deployQone">Deploy QONEV2</button>
+      <div id="qoneStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Deploy TokenVestingV2</h2>
+      <label>Token Address (QONEV2)</label>
+      <input id="vestingToken" type="text" placeholder="0x..." />
+      <label>TGE Date & Time</label>
+      <input id="vestingTge" type="datetime-local" value="2026-02-07T14:00" />
+      <div id="tgeSeconds" style="font-size: 11px; color: var(--accent); margin-top: -12px; margin-bottom: 12px; font-family: monospace;"></div>
+      <label>Initial Owner Address</label>
+      <input id="vestingOwner" type="text" placeholder="0x..." />
+      <button id="deployVesting">Deploy TokenVestingV2</button>
+      <div id="vestingStatus" class="status"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.js';
+
+    const QONE_ARTIFACT = await fetch('./QONEV2.json').then(r => r.json());
+    const VESTING_ARTIFACT = await fetch('./TokenVestingV2.json').then(r => r.json());
+
+    const HYPERLIQUID_TESTNET = {
+      chainId: '0x3e6', // 998
+      chainName: 'Hyperliquid Testnet',
+      nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+      rpcUrls: ['https://rpc.hyperliquid-testnet.xyz/evm'],
+      blockExplorerUrls: ['https://testnet.purrsec.com']
+    };
+
+    let provider, signer;
+
+    async function connect() {
+      if (!window.ethereum) return alert('Please install MetaMask');
+      
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [HYPERLIQUID_TESTNET]
+        });
+        
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        
+        document.getElementById('accountDisplay').textContent = `Connected: ${accounts[0]}`;
+        document.getElementById('connectBtn').style.display = 'none';
+        
+        // Auto-fill owner fields
+        document.getElementById('qoneOwner').value = accounts[0];
+        document.getElementById('vestingOwner').value = accounts[0];
+      } catch (err) {
+        console.error(err);
+        alert('Failed to connect: ' + err.message);
+      }
+    }
+
+    async function deployContract(name, artifact, args, statusId) {
+      const statusEl = document.getElementById(statusId);
+      statusEl.className = 'status info';
+      statusEl.textContent = `Deploying ${name}...`;
+
+      try {
+        const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode.object, signer);
+        const contract = await factory.deploy(...args);
+        
+        statusEl.innerHTML = `Transaction sent! Waiting for confirmation...<br>
+          <div class="result-item"><span class="result-label">TX ID:</span>${contract.deploymentTransaction().hash}</div>`;
+        
+        await contract.waitForDeployment();
+        const address = await contract.getAddress();
+        const tx = await contract.deploymentTransaction();
+        const receipt = await provider.getTransactionReceipt(tx.hash);
+
+        statusEl.innerHTML = `<span style="color: #4ade80; font-weight: bold;">${name} Deployed Successfully!</span><br>
+          <div class="result-item"><span class="result-label">Address:</span>${address}</div>
+          <div class="result-item"><span class="result-label">Nonce:</span>${tx.nonce}</div>
+          <div class="result-item"><span class="result-label">TX ID:</span>${tx.hash}</div>`;
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    document.getElementById('connectBtn').onclick = connect;
+
+    document.getElementById('deployQone').onclick = async () => {
+      const owner = document.getElementById('qoneOwner').value;
+      const authorizer = document.getElementById('qoneAuthorizer').value;
+      if (!owner || !authorizer) return alert('Please fill all fields');
+      await deployContract('QONEV2', QONE_ARTIFACT, [owner, authorizer], 'qoneStatus');
+    };
+
+    document.getElementById('deployVesting').onclick = async () => {
+      const token = document.getElementById('vestingToken').value;
+      const tgeStr = document.getElementById('vestingTge').value;
+      const owner = document.getElementById('vestingOwner').value;
+      
+      if (!token || !tgeStr || !owner) return alert('Please fill all fields');
+      
+      const tgeTimestamp = Math.floor(new Date(tgeStr + 'Z').getTime() / 1000);
+      await deployContract('TokenVestingV2', VESTING_ARTIFACT, [token, tgeTimestamp, owner], 'vestingStatus');
+    };
+
+    const tgeInput = document.getElementById('vestingTge');
+    const tgeSecondsDisplay = document.getElementById('tgeSeconds');
+
+    function updateTgeSeconds() {
+      const val = tgeInput.value;
+      if (val) {
+        const seconds = Math.floor(new Date(val + 'Z').getTime() / 1000);
+        tgeSecondsDisplay.textContent = `Unix Timestamp: ${seconds}s`;
+      } else {
+        tgeSecondsDisplay.textContent = '';
+      }
+    }
+
+    tgeInput.addEventListener('input', updateTgeSeconds);
+    updateTgeSeconds();
+  </script>
+</body>
+</html>

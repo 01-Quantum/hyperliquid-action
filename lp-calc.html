@@ -5,26 +5,95 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Hyperliquidity Calculator</title>
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      --bg: #05070a;
+      --card-bg: rgba(15, 20, 28, 0.7);
+      --border: rgba(255, 255, 255, 0.1);
+      --accent: #00f2ff;
+      --accent-dim: rgba(0, 242, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      color-scheme: dark;
+    }
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.35; }
-    .wrap { max-width: 860px; margin: 0 auto; }
-    h1 { margin: 0 0 12px; font-size: 20px; }
-    p { margin: 0 0 18px; opacity: 0.85; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .card { border: 1px solid rgba(127,127,127,0.35); border-radius: 12px; padding: 14px; }
-    label { display: block; font-size: 12px; opacity: 0.85; margin-bottom: 6px; }
-    input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(127,127,127,0.35); background: transparent; font-size: 14px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.05) 0%, transparent 40%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; }
+    h1 { 
+      margin: 0 0 8px; 
+      font-size: 28px; 
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #fff, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p { margin: 0 0 32px; color: var(--text-muted); font-size: 16px; }
+    .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; }
+    .card { 
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 16px; 
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    h2 { margin: 0 0 20px; font-size: 18px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+    label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    input { 
+      width: 100%; 
+      padding: 12px 14px; 
+      border-radius: 10px; 
+      border: 1px solid var(--border); 
+      background: rgba(0, 0, 0, 0.2); 
+      color: #fff;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .row:last-of-type { margin-bottom: 0; }
-    .out { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
-    .kv { display: grid; grid-template-columns: 220px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(127,127,127,0.35); }
+    .out { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; }
+    .kv { 
+      display: grid; 
+      grid-template-columns: 1fr auto; 
+      gap: 12px; 
+      padding: 12px 0; 
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
     .kv:last-child { border-bottom: 0; }
-    .muted { opacity: 0.75; font-size: 12px; margin-top: 10px; }
-    .err { color: #b00020; font-size: 12px; margin-top: 8px; }
+    .kv .muted { margin: 0; font-size: 13px; color: var(--text-muted); }
+    .kv div:last-child { color: #fff; font-weight: 600; font-size: 14px; }
+    .muted-list { color: var(--text-muted); font-size: 12px; margin-top: 24px; line-height: 1.6; }
+    .muted-list ul { padding-left: 18px; margin: 8px 0 0; }
+    .err { background: rgba(239, 68, 68, 0.1); color: #f87171; padding: 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 13px; margin-bottom: 16px; }
+    #jsonOut { 
+      background: #000; 
+      color: #a5f3fc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      padding: 12px;
+    }
     @media (max-width: 820px) {
       .grid { grid-template-columns: 1fr; }
-      .kv { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -63,19 +132,19 @@
         </div>
 
         <div id="err" class="err" style="display:none;"></div>
-        <div class="muted">
+        <div class="muted-list">
           Notes:
           <ul>
-            <li><span class="out">HL_tokens</span> uses: <span class="out">(orderSz × weiMultiplier) × (nOrders − nSeededLevels)</span></li>
-            <li><span class="out">midPrice</span> uses: <span class="out">startPx × step^nSeededLevels</span></li>
-            <li><span class="out">maxPrice</span> uses: <span class="out">startPx × step^(nOrders − 1)</span></li>
-            <li><span class="out">seeded USDC</span> sums: <span class="out">Σ(orderSz × (mid/step^k)), k=1..nSeededLevels</span></li>
+            <li><span class="out">HL_tokens</span>: (orderSz × weiMultiplier) × (nOrders − nSeededLevels)</li>
+            <li><span class="out">midPrice</span>: startPx × step^nSeededLevels</li>
+            <li><span class="out">maxPrice</span>: startPx × step^(nOrders − 1)</li>
+            <li><span class="out">seeded USDC</span>: Σ(orderSz × (mid/step^k)), k=1..nSeededLevels</li>
           </ul>
         </div>
       </div>
 
       <div class="card">
-        <h2 style="margin:0 0 10px; font-size:16px;">Results</h2>
+        <h2>Results</h2>
 
         <div class="out">
           <div class="kv"><div class="muted">HL Tokens (Wei)</div><div id="hlWei">—</div></div>
@@ -85,8 +154,8 @@
           <div class="kv"><div class="muted">Seeded USDC</div><div id="seededUsdc">—</div></div>
         </div>
 
-        <h3 style="margin:16px 0 8px; font-size:14px;">Generated JSON</h3>
-        <pre class="out" id="jsonOut" style="white-space:pre-wrap; margin:0; padding:12px; border-radius:12px; border:1px solid rgba(127,127,127,0.35);"></pre>
+        <h3 style="margin:24px 0 8px; font-size:14px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Generated JSON</h3>
+        <pre class="out" id="jsonOut"></pre>
       </div>
     </div>
   </div>
