@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Authorizer Manager - qLabs</title>
+  <style>
+    :root {
+      --bg: #05070a;
+      --card-bg: rgba(15, 20, 28, 0.7);
+      --border: rgba(255, 255, 255, 0.1);
+      --accent: #00f2ff;
+      --accent-dim: rgba(0, 242, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.05) 0%, transparent 40%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 800px; margin: 0 auto; }
+    h1 { 
+      margin: 0 0 8px; 
+      font-size: 28px; 
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #fff, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card { 
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 16px; 
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    h2 { margin: 0 0 20px; font-size: 18px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+    label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    input { 
+      width: 100%; 
+      padding: 12px 14px; 
+      border-radius: 10px; 
+      border: 1px solid var(--border); 
+      background: rgba(0, 0, 0, 0.2); 
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button:disabled { background: var(--text-muted); cursor: not-allowed; }
+    .status { margin-top: 16px; font-size: 14px; padding: 12px; border-radius: 8px; display: none; }
+    .status.info { background: var(--accent-dim); color: var(--accent); display: block; }
+    .status.error { background: rgba(239, 68, 68, 0.1); color: #f87171; display: block; }
+    .status.success { background: rgba(74, 222, 128, 0.1); color: #4ade80; display: block; }
+    .result-item { margin-top: 8px; font-family: monospace; font-size: 12px; word-break: break-all; }
+    .result-label { color: var(--text-muted); margin-right: 8px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Authorizer Manager</h1>
+    <p style="color: var(--text-muted); margin-bottom: 32px;">Manage QONEV2 PQC Authorizer upgrades on Hyperliquid Testnet</p>
+
+    <div class="card">
+      <div id="accountDisplay" style="font-weight: 600; margin-bottom: 16px; color: var(--accent);">Not connected</div>
+      <button id="connectBtn">Connect MetaMask</button>
+    </div>
+
+    <div class="card">
+      <h2>Contract Info</h2>
+      <label>QONEV2 Token Address</label>
+      <input id="tokenAddress" type="text" placeholder="0x..." />
+      <button id="loadInfo">Load Contract Info</button>
+      
+      <div id="contractInfo" style="margin-top: 20px; display: none;">
+        <div class="kv"><span class="result-label">Current Authorizer:</span><span id="currAuth" class="result-item"></span></div>
+        <div class="kv"><span class="result-label">Pending Authorizer:</span><span id="pendAuth" class="result-item"></span></div>
+        <div class="kv"><span class="result-label">Timelock Expires:</span><span id="timelock" class="result-item"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1. Propose New Authorizer</h2>
+      <label>New Authorizer Address</label>
+      <input id="newAuthAddr" type="text" placeholder="0x..." />
+      <button id="proposeBtn">Propose Authorizer</button>
+      <div id="proposeStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>2. Probe Pending Authorizer</h2>
+      <label>Account to Probe</label>
+      <input id="probeAddr" type="text" placeholder="0x..." />
+      <button id="probeBtn">Probe Authorizer</button>
+      <div id="probeStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>3. Finalize Upgrade</h2>
+      <label>Proof (Hex string, e.g. 0x...)</label>
+      <input id="proofHex" type="text" placeholder="0x..." value="0x" />
+      <button id="finalizeBtn">Finalize Authorizer</button>
+      <div id="finalizeStatus" class="status"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.js';
+
+    const QONE_ARTIFACT = await fetch('./QONE.json').then(r => r.json());
+
+    const HYPERLIQUID_TESTNET = {
+      chainId: '0x3e6', // 998
+      chainName: 'Hyperliquid Testnet',
+      nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+      rpcUrls: ['https://rpc.hyperliquid-testnet.xyz/evm'],
+      blockExplorerUrls: ['https://testnet.purrsec.com']
+    };
+
+    let provider, signer, contract;
+
+    async function connect() {
+      if (!window.ethereum) return alert('Please install MetaMask');
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [HYPERLIQUID_TESTNET]
+        });
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        document.getElementById('accountDisplay').textContent = `Connected: ${accounts[0]}`;
+        document.getElementById('connectBtn').style.display = 'none';
+        document.getElementById('probeAddr').value = accounts[0];
+      } catch (err) {
+        alert('Failed to connect: ' + err.message);
+      }
+    }
+
+    async function loadContractInfo() {
+      const addr = document.getElementById('tokenAddress').value;
+      if (!ethers.isAddress(addr)) return alert('Invalid token address');
+      
+      contract = new ethers.Contract(addr, QONE_ARTIFACT.abi, provider);
+      try {
+        const [curr, pend, lock] = await Promise.all([
+          contract.pqcAuthorizer(),
+          contract.pendingPQCAuthorizer(),
+          contract.upgradeTimelock()
+        ]);
+        
+        document.getElementById('currAuth').textContent = curr;
+        document.getElementById('pendAuth').textContent = pend === ethers.ZeroAddress ? 'None' : pend;
+        document.getElementById('timelock').textContent = lock == 0 ? 'N/A' : new Date(Number(lock) * 1000).toLocaleString();
+        document.getElementById('contractInfo').style.display = 'block';
+      } catch (err) {
+        alert('Error loading info: ' + err.message);
+      }
+    }
+
+    document.getElementById('connectBtn').onclick = connect;
+    document.getElementById('loadInfo').onclick = loadContractInfo;
+
+    document.getElementById('proposeBtn').onclick = async () => {
+      const newAuth = document.getElementById('newAuthAddr').value;
+      const statusEl = document.getElementById('proposeStatus');
+      if (!ethers.isAddress(newAuth)) return alert('Invalid address');
+      
+      statusEl.className = 'status info';
+      statusEl.textContent = 'Sending proposal...';
+      try {
+        const tx = await contract.connect(signer).proposePQCAuthorizer(newAuth);
+        statusEl.textContent = 'Transaction sent: ' + tx.hash;
+        await tx.wait();
+        statusEl.className = 'status success';
+        statusEl.textContent = 'Proposal successful!';
+        loadContractInfo();
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = err.message;
+      }
+    };
+
+    document.getElementById('probeBtn').onclick = async () => {
+      const addr = document.getElementById('probeAddr').value;
+      const statusEl = document.getElementById('probeStatus');
+      if (!ethers.isAddress(addr)) return alert('Invalid address');
+      
+      statusEl.className = 'status info';
+      statusEl.textContent = 'Probing...';
+      try {
+        const result = await contract.probePendingAuthorizer(addr);
+        statusEl.className = 'status success';
+        statusEl.innerHTML = `Status: ${result.status}<br>Pending: ${result.pending}`;
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = err.message;
+      }
+    };
+
+    document.getElementById('finalizeBtn').onclick = async () => {
+      const proof = document.getElementById('proofHex').value;
+      const statusEl = document.getElementById('finalizeStatus');
+      
+      statusEl.className = 'status info';
+      statusEl.textContent = 'Finalizing upgrade...';
+      try {
+        const tx = await contract.connect(signer).finalizePQCAuthorizer(proof);
+        statusEl.textContent = 'Transaction sent: ' + tx.hash;
+        await tx.wait();
+        statusEl.className = 'status success';
+        statusEl.textContent = 'Upgrade finalized!';
+        loadContractInfo();
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = err.message;
+      }
+    };
+  </script>
+</body>
+</html>

@@ -96,7 +96,7 @@
       <label>Initial Owner Address</label>
       <input id="qoneOwner" type="text" placeholder="0x..." />
       <label>Authorizer Address</label>
-      <input id="qoneAuthorizer" type="text" placeholder="0x..." value="0x0a5c31273A00769d43C88b6a93F4633E1F7C4aE4" />
+      <input id="qoneAuthorizer" type="text" placeholder="0x..." value="0xF097375de704d394339Eb322122A9bCDa766AC1b" />
       <button id="deployQone">Deploy QONEV2</button>
       <div id="qoneStatus" class="status"></div>
     </div>
@@ -118,7 +118,7 @@
   <script type="module">
     import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.js';
 
-    const QONE_ARTIFACT = await fetch('./QONEV2.json').then(r => r.json());
+    const QONE_ARTIFACT = await fetch('./QONE.json').then(r => r.json());
     const VESTING_ARTIFACT = await fetch('./TokenVestingV2.json').then(r => r.json());
 
     const HYPERLIQUID_TESTNET = {

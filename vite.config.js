@@ -9,6 +9,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         lpcalc: resolve(__dirname, 'lp-calc.html'),
         deploy: resolve(__dirname, 'deploy.html'),
+        authorizer: resolve(__dirname, 'authorizer.html'),
       },
     },
   },
