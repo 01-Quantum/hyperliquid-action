@@ -101,8 +101,7 @@ signBtn.addEventListener('click', async () => {
             wallet: signer, 
             action, 
             nonce, 
-            isTestnet: false,
-            vaultAddress: "0xb2A1dc0DB510E268B645387e852061ce22E2e7aa"
+            isTestnet: false
         });
 
         const finalPayload = {
