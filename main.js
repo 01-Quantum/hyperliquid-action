@@ -80,7 +80,7 @@ signBtn.addEventListener('click', async () => {
                             chainId: '0x539',
                             chainName: 'Hyperliquid Core Signing',
                             nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
-                            rpcUrls: ['https://api.hyperliquid-testnet.xyz/evm'], 
+                            rpcUrls: ['https://api.hyperliquid.xyz/evm'], 
                         }],
                     });
                 } else {
@@ -101,7 +101,8 @@ signBtn.addEventListener('click', async () => {
             wallet: signer, 
             action, 
             nonce, 
-            isTestnet: true 
+            isTestnet: false,
+            vaultAddress: "0xb2A1dc0DB510E268B645387e852061ce22E2e7aa"
         });
 
         const finalPayload = {
